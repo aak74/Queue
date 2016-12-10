@@ -21,4 +21,11 @@ interface JobInterface
      * @return array
      */
     public function getData();
+
+    /**
+     * @return integer
+     */
+    public function getId();
+
+    public function setId($id);
 }

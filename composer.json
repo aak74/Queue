@@ -1,12 +1,12 @@
 {
-  "name": "queue/queue",
+  "name": "aak74/queue",
   "type": "library",
   "description": "Generic queue",
   "license": "MIT",
   "authors": [
     {
-      "name": "Dries De Peuter",
-      "email": "dries@nousefreak.be"
+      "name": "Andrew Kopylov",
+      "email": "aak74ko@gmail.com"
     }
   ],
   "require": {
@@ -19,12 +19,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Queue\\": "src/"
+      "Akop\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Queue\\": "tests/"
+      "Akop\\": "tests/"
     }
   }
 }

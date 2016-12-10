@@ -30,7 +30,7 @@ interface DriverInterface
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function removeJob($queueName, JobInterface $job);
+    public function removeJob($queueName, JobInterface $job, $jobResult);
 
     /**
      * @param string $queueName
