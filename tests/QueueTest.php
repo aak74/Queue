@@ -40,7 +40,7 @@ class QueueTest extends \PHPUnit_Framework_TestCase
 
         $stub->expects($this->once())
             ->method('removeJob')
-            ->with('test', $job);
+            ->with($job);
 
         $queue = new Queue($stub, 'test');
 
@@ -56,7 +56,7 @@ class QueueTest extends \PHPUnit_Framework_TestCase
 
         $stub->expects($this->once())
             ->method('buryJob')
-            ->with('test', $job);
+            ->with($job);
 
         $queue = new Queue($stub, 'test');
 

@@ -8,7 +8,7 @@ use Psr\Log\LogLevel;
 
 class PDO extends Driver
 {
-    private $pdo;
+    private $db;
     protected $tablename = 'jobs';
 
     public function connect($dsn, $username, $password, array $options = [])
@@ -30,18 +30,14 @@ class PDO extends Driver
         // \Gb\Util::pre([$queueName, $job->getData()], 'PDO addJob');
         $this->log(LogLevel::DEBUG, 'addJob ' . $queueName, $job->getData());
         $hash = $job->getHash();
-        $jobData = $this->getNewJobByHash($hash);
-        // \Gb\Util::pre([$jobData, $hash], 'PDO addJob jobData');
-        if ($jobData) {
-            $result = $jobData['id'];
-        } else {
-            $this->insertJob($queueName, $hash, $job->getSerialized());
-            $result = true;
-        }
-        return $result;
+        return (
+            count($this->getNewJobByHash($hash))
+                ||
+            $this->insertJob($queueName, $hash, $job->getSerialized())
+        );
     }
 
-    public function insertJob($queueName, $hash, $jobData)
+    private function insertJob($queueName, $hash, $jobData)
     {
         // \Gb\Util::pre([$queueName, $hash, $jobData], 'insertJob');
         $sql = <<<SQL
@@ -50,16 +46,16 @@ class PDO extends Driver
             VALUES (:hash, :job, :queue, :status, NOW())
 SQL;
 
-        $stmt = $this->runQuery(
+        $this->execQuery(
             $sql,
             [
                 'hash' => $hash,
                 'job' => $jobData,
                 'queue' => $queueName,
                 'status' => Job::STATUS_NEW
-            ],
-            true
+            ]
         );
+        return true;
     }
 
     /**
@@ -96,7 +92,7 @@ SQL;
         );
 
         if ($data = $stmt->fetch()) {
-            $this->log(LogLevel::DEBUG, 'PDO resolveJob ' . $queueName, $data);
+            $this->log(LogLevel::DEBUG, 'PDO resolveJob ', $data);
 
             // \Gb\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
             $jobUnserialized = unserialize($data['job']);
@@ -104,8 +100,10 @@ SQL;
             // if (is_array($jobUnserialized)) {
                 $job = new Job($jobUnserialized['name'], $jobUnserialized['data']);
                 $job->setId($data['id']);
-            } else {
-                $this->updateJobAttempts($data['id'], $data['attempts']+1);
+            }
+
+            if (!$job) {
+                $this->setJobStatus($data['id'], Job::STATUS_ERROR);
             }
         }
 
@@ -113,15 +111,15 @@ SQL;
         return $job;
     }
 
-    public function removeJob($queueName, JobInterface $job, array $jobResult = [])
+    public function removeJob(JobInterface $job, array $jobResult = [])
     {
         // \Gb\Util::pre([$queueName, $job], 'Driver\PDO removeJob');
         // \Gb\Util::pre($job, 'removeJob');
         $this->log(LogLevel::DEBUG, 'removeJob ' . $job->getId(), $job->getData());
-        $stmt = $this->runQuery(
-            'UPDATE ' . $this->tablename . ' SET `status` = :status, `result` = :result WHERE `id` = :id',
-            ['id' => $job->getId(), 'status' => Job::STATUS_DONE, 'result' => serialize($jobResult)],
-            true
+        $this->execQuery(
+            'UPDATE ' . $this->tablename
+                . ' SET `status` = :status, `result` = :result WHERE `id` = :id',
+            ['id' => $job->getId(), 'status' => Job::STATUS_DONE, 'result' => serialize($jobResult)]
         );
     }
 
@@ -130,11 +128,10 @@ SQL;
         // \Gb\Util::pre([$job, $job->getPropertyByName('attempts')], 'Driver\PDO moveJobToEnd');
         // \Gb\Util::pre($job, 'removeJob');
         $this->log(LogLevel::DEBUG, 'moveJobToEnd ' . $job->getId(), $job->getData());
-        $stmt = $this->runQuery(
-            'UPDATE ' . $this->tablename . ' SET `attempts` = `attempts` + 1, `result` = :result WHERE `id` = :id',
-            ['id' => $job->getId(), 'result' => serialize($jobResult)],
-            // ['id' => $job->getId(), 'attempts' => $job->getPropertyByName('attempts') + 1],
-            true
+        $this->execQuery(
+            'UPDATE ' . $this->tablename
+                . ' SET `attempts` = `attempts` + 1, `result` = :result WHERE `id` = :id',
+            ['id' => $job->getId(), 'result' => serialize($jobResult)]
         );
     }
 
@@ -142,13 +139,12 @@ SQL;
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function buryJob($queueName, JobInterface $job)
+    public function buryJob(JobInterface $job)
     {
         $this->log(LogLevel::DEBUG, "buryJob {$job->getId()}", $job->getData());
-        $stmt = $this->runQuery(
+        $this->execQuery(
             'UPDATE ' . $this->tablename . ' SET `status` = :status WHERE `id` = :id',
-            ['id' => $job->getId(), 'status' => Job::STATUS_BURIED],
-            true
+            ['id' => $job->getId(), 'status' => Job::STATUS_BURIED]
         );
     }
 
@@ -162,7 +158,7 @@ SQL;
             WHERE `id` = :id
 SQL;
         // \Gb\Util::pre([$job, $sql], 'updateJob job');
-        $stmt = $this->runQuery(
+        $this->execQuery(
             $sql,
             [
                 'id' => $job->getId(),
@@ -170,8 +166,7 @@ SQL;
                 'queue' => $this->normalizeQueue($job->getName()),
                 'job' => $job->getSerialized(),
                 'hash' => $job->getHash(),
-            ],
-            true
+            ]
         );
     }
 
@@ -191,11 +186,11 @@ SQL;
         return $result;
     }
 
-    public function getJobById($id)
+    public function getJobById($jobId)
     {
         return $this->getJobBySQL(
             'SELECT * FROM ' . $this->tablename . ' WHERE `id` = :id',
-            ['id' => $id]
+            ['id' => $jobId]
         );
     }
 
@@ -215,8 +210,13 @@ SQL;
     public function getNewJobsWithChildren($queueName)
     {
         $stmt = $this->runQuery(
-            'SELECT * FROM ' . $this->tablename . ' WHERE `queue` LIKE :queue AND `status` = :status AND `attempts` < :maxAttempts',
-            ['queue' => $this->normalizeQueue($queueName) . '%', 'status' => Job::STATUS_NEW, 'maxAttempts' => 5]
+            'SELECT * FROM ' . $this->tablename
+                . ' WHERE `queue` LIKE :queue AND `status` = :status AND `attempts` < :maxAttempts',
+            [
+                'queue' => $this->normalizeQueue($queueName) . '%',
+                'status' => Job::STATUS_NEW,
+                'maxAttempts' => 5
+            ]
         );
 
         $result = $stmt->fetchAll();
@@ -229,15 +229,18 @@ SQL;
 
     public function removeNewJobsWithChildren($queueName)
     {
-        return $this->runQuery(
-            'DELETE FROM ' . $this->tablename . ' WHERE `queue` LIKE :queue AND `status` = :status',
-            ['queue' => $this->normalizeQueue($queueName) . '%', 'status' => Job::STATUS_NEW],
-            true
+        return $this->execQuery(
+            'DELETE FROM ' . $this->tablename
+                . ' WHERE `queue` LIKE :queue AND `status` = :status',
+            [
+                'queue' => $this->normalizeQueue($queueName) . '%',
+                'status' => Job::STATUS_NEW
+            ]
         );
     }
 
-
-    public function getJobByHash($hash)
+/*
+    private function getJobByHash($hash)
     {
         $stmt = $this->runQuery(
             'SELECT * FROM ' . $this->tablename . ' WHERE hash = :hash LIMIT 1',
@@ -249,12 +252,12 @@ SQL;
 
         return $result;
     }
-
-    public function getNewJobByHash($hash)
+*/
+    private function getNewJobByHash($hash)
     {
-
         $stmt = $this->runQuery(
-            'SELECT * FROM ' . $this->tablename . ' WHERE hash = :hash AND status = :status LIMIT 1',
+            'SELECT * FROM ' . $this->tablename
+                . ' WHERE hash = :hash AND status = :status LIMIT 1',
             ['hash' => $hash, 'status' => Job::STATUS_NEW]
         );
         $result = $stmt->fetch();
@@ -266,39 +269,54 @@ SQL;
 
     public function removeJobs($queueName)
     {
-        $stmt = $this->runQuery(
-            'DELETE FROM ' . $this->tablename . ' WHERE queue LIKE :queue',
-            ['queue' => $queueName],
-            true
+        $this->execQuery(
+            'DELETE FROM ' . $this->tablename
+                . ' WHERE queue LIKE :queue',
+            ['queue' => $queueName]
         );
     }
 
     public function removeAllJobs()
     {
-        $stmt = $this->runQuery('DELETE FROM ' . $this->tablename, [], true);
+        $this->execQuery('DELETE FROM ' . $this->tablename, []);
     }
 
-    private function updateJobAttempts($id, $attempts)
+/*
+    private function updateJobAttempts($jobId, $attempts)
     {
-        $stmt = $this->runQuery(
+        $this->execQuery(
             "UPDATE $this->tablename SET `attempts` = :attempts WHERE `id` = :id",
             [
-                'id' => $id,
+                'id' => $jobId,
                 'attempts' => $attempts,
-            ],
-            true
+            ]
+        );
+    }
+*/
+
+    private function setJobStatus($jobId, $status)
+    {
+        $this->runQuery(
+            "UPDATE $this->tablename SET `status` = :status WHERE `id` = :id",
+            [
+                'id' => $jobId,
+                'status' => $status,
+            ]
         );
     }
 
-    private function runQuery($sql, $params = [], $autoclose = false)
+    private function runQuery($sql, $params = [])
     {
         // \Gb\Util::pre([$sql, $params], 'runQuery');
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        if ($autoclose) {
-            $stmt->closeCursor();
-        }
         return $stmt;
+    }
+
+    private function execQuery($sql, $params = [])
+    {
+        $stmt = $this->runQuery($sql, $params);
+        $stmt->closeCursor();
     }
 
     private function normalizeQueue($queueName)

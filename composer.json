@@ -1,12 +1,13 @@
 {
   "name": "aak74/queue",
+  "version": "0.1.0",
   "type": "library",
   "description": "Generic queue",
   "license": "MIT",
   "authors": [
     {
       "name": "Andrew Kopylov",
-      "email": "aak74ko@gmail.com"
+      "email": "aa74ko@gmail.com"
     }
   ],
   "require": {
@@ -19,12 +20,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Akop\\": "src/"
+      "Queue\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Akop\\": "tests/"
+      "Queue\\": "tests/"
     }
   }
 }

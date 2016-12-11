@@ -36,18 +36,18 @@ class Driver implements DriverInterface
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function removeJob($queueName, JobInterface $job, $jobResult)
+    public function removeJob(JobInterface $job, $jobResult)
     {
-        $this->log(LogLevel::DEBUG, "Job {$job->getName()} removed from {$queueName}", $job->getData());
+        $this->log(LogLevel::DEBUG, "Job {$job->getName()} removed", $job->getData());
     }
 
     /**
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function buryJob($queueName, JobInterface $job)
+    public function buryJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "Job {$job->getName()} buried from {$queueName}", $job->getData());
+        $this->log(LogLevel::DEBUG, "Job {$job->getName()} buried", $job->getData());
     }
 
     public function updateJob(JobInterface $job)

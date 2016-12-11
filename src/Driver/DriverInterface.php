@@ -27,14 +27,12 @@ interface DriverInterface
     public function resolveJob($queueName);
 
     /**
-     * @param string       $queueName
      * @param JobInterface $job
      */
-    public function removeJob($queueName, JobInterface $job, $jobResult);
+    public function removeJob(JobInterface $job, $jobResult);
 
     /**
-     * @param string $queueName
      * @param JobInterface $job
      */
-    public function buryJob($queueName, JobInterface $job);
+    public function buryJob(JobInterface $job);
 }
