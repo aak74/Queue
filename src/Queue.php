@@ -32,16 +32,15 @@ class Queue
      */
     private $name;
 
-    public function __construct(
-        DriverInterface $driver,
-        $name = 'worker_queue',
-        $jobTypes = null
-    ) {
+    public function __construct(DriverInterface $driver)
+    {
         $this->driver = $driver;
-        $this->name = $name;
-        $this->jobTypes = $jobTypes;
     }
 
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
 
     public function runJob()
     {
@@ -56,85 +55,23 @@ class Queue
     private function runJobByJob(JobInterface $job)
     {
         $this->log(LogLevel::DEBUG, 'runJobByJob ' . $this->name);
-        $result = false;
-        if ($jobResult = $job->run()) {
-            $result = true;
-            // \Gb\Util::pre([$updaterName, $nextQueue, $jobResult], 'jobResult');
-            foreach ($jobResult as $item) {
-                $result = $result
-                    && $this->executeUpdater($item)
-                    && $this->addToQueue($item);
-            }
-        } else {
-            $try = $this->jobTypes->getPropByName(
-                $this->getPropertyByName('try'),
-                'executor',
-                $this->namespace
-            );
-            if ($try && $jobResult = $job->tryRun($try)) {
-                $result = $this->addJobToQueue(new Job($try, $job->getData()), $try);
-            }
+        $job->run();
+        $result = true;
+        // \Gb\Util::pre([$updaterName, $nextQueue, $jobResult], 'jobResult');
+        foreach ($job->addToQueue as $item) {
+            $result = $result && $this->addJobToQueue($item);
         }
+
         if ($result) {
-            $this->removeJob($job, $jobResult);
-        } else {
-            $this->moveJobToEnd($job, $jobResult);
+            $this->updateJob($job);
         }
-    }
-
-    private function executeUpdater($item)
-    {
-        $result = true;
-        if ($updaterName = $this->getUpdater()) {
-            $updater =  new $updaterName;
-            $result =  $updater->execute(new Job($updaterName, $item));
-        }
-        return $result;
-    }
-
-    private function addToQueue($item)
-    {
-        $result = true;
-        if ($nextQueue = $this->getNextQueue()) {
-            $result = $this->addJobToQueue(new Job($nextQueue, $item), $nextQueue);
-        }
-        return $result;
-    }
-
-    private function getUpdater()
-    {
-        return $this->getPropertyByName('updater');
-    }
-
-    private function getNextQueue()
-    {
-        return $this->getPropertyByName('nextQueue');
     }
 /*
-    private function getExcecutor()
-    {
-        return $this->getPropertyByName('executor');
-    }
-*/
-    private function getPropertyByName($name)
-    {
-        return $this->jobTypes->getPropByName($this->getQueueCleanName(), $name, $this->namespace);
-    }
-
-
     private function getQueueCleanName()
     {
         $parts = explode('\\', $this->name);
         end($parts);
         return current($parts);
-    }
-/*
-    private function update($item, $updater)
-    {
-        if ($updater) {
-            $result = $updater->execute($item);
-        }
-        return $result;
     }
 */
     public function addJobToQueue(JobInterface $job, $queue)
@@ -175,16 +112,9 @@ class Queue
     /**
      * @param JobInterface $job
      */
-    public function removeJob(JobInterface $job, array $jobResult = [])
+    public function removeJob(JobInterface $job)
     {
-        // \Gb\Util::pre([$this->name, $job], 'Queue removeJob');
-        $this->driver->removeJob($job, $jobResult);
-    }
-
-    private function moveJobToEnd(JobInterface $job)
-    {
-        // \Gb\Util::pre([$this->name, $job], 'Queue moveJobToEnd');
-        $this->driver->moveJobToEnd($job);
+        $this->driver->removeJob($job);
     }
 
     /**

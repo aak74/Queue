@@ -3,10 +3,11 @@
 namespace Queue\Driver;
 
 use Queue\Job\JobInterface;
+use Queue\Job\Job;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
-class Driver implements DriverInterface
+abstract class Driver implements DriverInterface
 {
     /**
      * @var LoggerInterface
@@ -17,10 +18,19 @@ class Driver implements DriverInterface
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function addJob($queueName, JobInterface $job)
+    public function addJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "Job {$job->getName()} added to {$queueName}", $job->getData());
+        // \Gb\Util::pre([$queueName, $job->getData()], 'PDO addJob');
+        $this->log(LogLevel::DEBUG, 'addJob ' . $job->getName(), $job->getData());
+        $hash = $job->getHash();
+        return (
+            count($this->getNewJobByHash($hash))
+                ||
+            $this->insertJob($job->getName(), $hash, $job->getSerialized())
+        );
     }
+
+    abstract protected function insertJob($queueName, $hash, $jobData);
 
     /**
      * @param string $queueName
@@ -36,7 +46,7 @@ class Driver implements DriverInterface
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function removeJob(JobInterface $job, $jobResult)
+    public function removeJob(JobInterface $job)
     {
         $this->log(LogLevel::DEBUG, "Job {$job->getName()} removed", $job->getData());
     }
@@ -55,6 +65,25 @@ class Driver implements DriverInterface
         $this->log(LogLevel::DEBUG, "Job {$job->getName()} updated", $job->getData());
     }
 
+
+    protected function getJobByData($data)
+    {
+        // \Gb\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
+        if (!data) {
+            return false;
+        }
+        $jobUnserialized = unserialize($data['job']);
+        if (is_array($jobUnserialized) && isset($jobUnserialized['data'])) {
+            // if (is_array($jobUnserialized)) {
+            $job = new Job($jobUnserialized['name'], $jobUnserialized['data']);
+            $job->setDataAll($data);
+        }
+
+        if (!$job) {
+            $this->setJobStatus($data['id'], Job::STATUS_ERROR);
+        }
+        return $job;
+    }
     /**
      * @param LoggerInterface $logger
      */
@@ -70,5 +99,13 @@ class Driver implements DriverInterface
         }
 
         $this->logger->log($level, $message, $context);
+    }
+
+    private function getNewJobByHash($hash)
+    {
+        return $this->getJobs([
+            'status' => Job::STATUS_NEW,
+            'hash' => $hash,
+        ]);
     }
 }

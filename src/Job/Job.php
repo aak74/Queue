@@ -4,27 +4,34 @@ namespace Queue\Job;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use Queue\Executor\JobExecutorInterface;
 
 class Job implements JobInterface
 {
+    const MAX_TRIES = 5;
+
     const STATUS_NEW = 0;
-    const STATUS_ERROR = 5;
+    const STATUS_TRY_LATER = 2;
+    const STATUS_MOVED_TO_NEXT = 4;
     const STATUS_DONE = 9;
     const STATUS_BURIED = -1;
+    const STATUS_ERROR = -5;
 
+    public $addToQueue;
+    protected $nextJobClassName;
     /**
      * @var string
      */
     private $name;
     private $status;
+    private $result;
+    private $tries = 0;
 
     /**
      * @var array
      */
     private $data;
 
-    private $id;
+    private $jobId;
 
     /**
      * Job constructor.
@@ -55,65 +62,47 @@ class Job implements JobInterface
         return $this->data;
     }
 
+    public function setDataAll($data)
+    {
+        $this->jobId = $data['jobId'];
+        $this->name = $data['name'];
+        $this->status = $data['status'];
+        $this->result = $data['result'];
+        $this->tries = $data['tries'];
+        $this->data = $data['data'];
+    }
+
     public function run()
     {
-        $result = false;
+        $this->addToQueue = false;
         $this->log(LogLevel::DEBUG, 'run', $this->getData());
-        if ($res = $this->execute($this->getExcecutor())) {
-            // if ($nextExecutor = $this->getNextQueue()) {
-            //     if ($result = $this->execute($nextExecutor, $res)) {
-            //         $result = true;
-            //     }
-            // } else {
-            //     $result = true;
-            // }
-            $result = $res;
+
+        if ($this->result = $this->execute()) {
+            return ($this->status = Job::STATUS_DONE);
         }
-        return $result;
+
+        if ($this->result = $this->tryRun()) {
+            return ($this->status = Job::STATUS_MOVED_TO_NEXT);
+        }
+        $this->tries++;
+        return Job::STATUS_TRY_LATER;
+
     }
 
-    public function tryRun($executorName)
+    protected function tryRun()
     {
-        $result = false;
-        // \Gb\Util::pre($executorName, 'Job tryRun');
+        $this->addToQueue = false;
         $this->log(LogLevel::DEBUG, 'tryRun', $this->getData());
-        $result = $this->execute($executorName);
-        // \Gb\Util::pre($result, 'Job tryRun result');
-        return $result;
+        $nextJob = new $this->nextJobClassName($this->nextJobClassName, $this->getData());
+        if ($nextJob->execute()) {
+            $this->addToQueue[] = $nextJob;
+        }
+        return !empty($this->addToQueue);
     }
 
-    private function execute($executorName, array $params = [])
+    protected function execute()
     {
-        $this->log(LogLevel::DEBUG, 'execute ' . $executorName, $params);
-        // \Gb\Util::pre([$executorName, $params], 'Job execute');
-        $executor = new $executorName;
-        // \Gb\Util::pre($executor, 'Job execute');
-        $result = $executor->execute($this, $params);
-        // \Gb\Util::pre($result, 'execute $result');
-        $this->log(LogLevel::DEBUG, 'execute result', $result);
-        return $result;
-    }
 
-
-    public function getUpdater()
-    {
-        return $this->getPropertyByName('updater');
-    }
-
-    public function getNextQueue()
-    {
-        return $this->getPropertyByName('nextQueue');
-    }
-
-    public function getExcecutor()
-    {
-        return $this->getName();
-        // return $this->getPropertyByName('executor');
-    }
-
-    public function getPropertyByName($propertyName)
-    {
-        return $this->data[$propertyName];
     }
 
     /**
@@ -121,12 +110,12 @@ class Job implements JobInterface
      */
     public function getId()
     {
-        return $this->id;
+        return $this->jobId;
     }
 
-    public function setId($id)
+    public function setId($jobId)
     {
-        $this->id = $id;
+        $this->id = $jobId;
     }
 
     public function setStatus($status)
@@ -137,6 +126,11 @@ class Job implements JobInterface
     public function getStatus()
     {
         return $this->status;
+    }
+
+    public function getResult()
+    {
+        return $this->result;
     }
 
     public function updateName($name)
@@ -168,7 +162,6 @@ class Job implements JobInterface
         }
 
         $message = sprintf('[%s] %s', $this->workerId, $message);
-
         $this->logger->log($level, $message, $context);
     }
 }

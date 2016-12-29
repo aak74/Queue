@@ -29,7 +29,7 @@ interface DriverInterface
     /**
      * @param JobInterface $job
      */
-    public function removeJob(JobInterface $job, $jobResult);
+    public function removeJob(JobInterface $job);
 
     /**
      * @param JobInterface $job

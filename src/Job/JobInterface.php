@@ -26,6 +26,6 @@ interface JobInterface
      * @return integer
      */
     public function getId();
-
-    public function setId($id);
+    public function setId($jobId);
+    public function run();
 }
