@@ -292,9 +292,4 @@ SQL;
         $stmt = $this->runQuery($sql, $params);
         $stmt->closeCursor();
     }
-
-    private function normalizeQueue($queueName)
-    {
-        return str_replace('\\', '\\\\', $queueName);
-    }
 }

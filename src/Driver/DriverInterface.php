@@ -18,7 +18,7 @@ interface DriverInterface
      * @param string       $queueName
      * @param JobInterface $job
      */
-    public function addJob($queueName, JobInterface $job);
+    public function addJob(JobInterface $job);
 
     /**
      * @param string $queueName

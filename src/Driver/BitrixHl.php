@@ -126,7 +126,7 @@ class BitrixHl extends Driver
         return $this->elementObj->getList([
                 'filter' => [
                     'status' => Job::STATUS_NEW,
-                    'name' => $queueName,
+                    'name' => str_replace('\\', '\\\\', $queueName),
                 ]
             ]);
     }

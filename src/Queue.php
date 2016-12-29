@@ -86,7 +86,7 @@ class Queue
     public function addJob(JobInterface $job)
     {
         // \Gb\Util::pre([$this->getName(), $job], 'Queue addJob');
-        $this->driver->addJob($this->getName(), $job);
+        $this->driver->addJob($job);
     }
 
     public function addJobByType($typeName, array $params = [])
