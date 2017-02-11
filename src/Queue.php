@@ -10,13 +10,12 @@ use Queue\Job\Job as Job;
 
 class Queue
 {
-    use Queue\Logger\LoggerTrait;
+    use Logger\LoggerTrait;
     /**
      * @var DriverInterface
      */
     private $driver;
     private $namespace;
-    private $logger;
 
     /**
      * @var
@@ -57,13 +56,13 @@ class Queue
             $this->updateJob($job);
         }
     }
-
+/*
     public function addJobToQueue(JobInterface $job, $queue)
     {
         // \Gb\Util::pre([$queue, $job->getData()], 'addJobToQueue');
         return $this->driver->addJob($queue, $job);
     }
-
+*/
     /**
      * @param JobInterface $job
      */

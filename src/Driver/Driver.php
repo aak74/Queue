@@ -4,10 +4,11 @@ namespace Queue\Driver;
 
 use Queue\Job\JobInterface;
 use Queue\Job\Job;
+use Psr\Log\LogLevel;
 
 abstract class Driver implements DriverInterface
 {
-    use Queue\Logger\LoggerTrait;
+    use \Queue\Logger\LoggerTrait;
 
     /**
      * @param string       $queueName
@@ -15,17 +16,17 @@ abstract class Driver implements DriverInterface
      */
     public function addJob(JobInterface $job)
     {
-        // \Gb\Util::pre([$queueName, $job->getData()], 'PDO addJob');
         $this->log(LogLevel::DEBUG, 'addJob ' . $job->getName(), $job->getData());
         $hash = $job->getHash();
+        // \Akop\Util::pre($hash, 'addJob $hash');
         return (
             count($this->getNewJobByHash($hash))
                 ||
-            $this->insertJob($job->getName(), $hash, $job->getSerialized())
+            $this->insertJob($job)
         );
     }
 
-    abstract protected function insertJob($queueName, $hash, $jobData);
+    abstract protected function insertJob($job);
 
     /**
      * @param string $queueName

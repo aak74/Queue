@@ -7,8 +7,8 @@ use Psr\Log\LogLevel;
 
 class Job implements JobInterface
 {
-    use Queue\Logger\LoggerTrait;
-    
+    use \Queue\Logger\LoggerTrait;
+
     const MAX_TRIES = 5;
 
     const STATUS_NEW = 0;
@@ -18,20 +18,16 @@ class Job implements JobInterface
     const STATUS_BURIED = -1;
     const STATUS_ERROR = -5;
 
-    public $addToQueue;
+    // public $addToQueue;
     protected $nextJobClassName;
-    /**
-     * @var string
-     */
-    private $name;
+    protected $name;
+    protected $alias;
+    protected $type;
+    protected $weight = 500;
     private $status;
     private $result;
     private $tries = 0;
-
-    /**
-     * @var array
-     */
-    private $data;
+    private $payload;
 
     private $jobId;
 
@@ -46,6 +42,7 @@ class Job implements JobInterface
         // \Gb\Util::pre([$name, $data], 'Job  __construct');
         $this->name = $name;
         $this->data = $data;
+        $this->status = self::STATUS_NEW;
     }
 
     /**
@@ -105,6 +102,20 @@ class Job implements JobInterface
     protected function execute()
     {
 
+    }
+
+    public function getDefaultParams()
+    {
+        return [
+            'name' => $this->getName(),
+            'type' => $this->type,
+            'weight' => $this->weight,
+            'status' => $this->getStatus(),
+            'payload' => $this->getSerialized(),
+            'worker' => self::class,
+            'result' => serialize($this->getResult()),
+            'hash' => $this->getHash(),
+        ];
     }
 
     /**

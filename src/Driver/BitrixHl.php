@@ -14,14 +14,9 @@ class BitrixHl extends Driver
         $this->elementObj = $elementObj;
     }
 
-    protected function insertJob($queueName, $hash, $jobData)
+    protected function insertJob($job)
     {
-        return $this->elementObj->add([
-            'hash' => $hash,
-            'job' => $jobData,
-            'name' => $queueName,
-            'status' => Job::STATUS_NEW,
-        ]);
+        return $this->elementObj->add($job->getDefaultParams());
     }
 
     /**
@@ -61,10 +56,10 @@ class BitrixHl extends Driver
         parent::moveJobToEnd($job);
         $this->elementObj->update(
             $job->getId(),
-            [
-                'tries' => 'tries + 1',
-                'result' => serialize($job->getResult())
-            ]
+            array_merge(
+                $job->getDefaultParams(),
+                ['tries' => 'tries + 1']
+            )
         );
     }
 
@@ -91,14 +86,7 @@ class BitrixHl extends Driver
         parent::updateJob($job);
         $this->elementObj->update(
             $job->getId(),
-            [
-                'status' => $job->getStatus(),
-                'name' => $job->getName(),
-                // 'queue' => $this->normalizeQueue($job->getName()),
-                'job' => $job->getSerialized(),
-                'result' => serialize($job->getResult()),
-                'hash' => $job->getHash(),
-            ]
+            $job->getDefaultParams()
         );
     }
 
