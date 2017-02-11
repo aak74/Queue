@@ -7,6 +7,8 @@ use Psr\Log\LogLevel;
 
 class Job implements JobInterface
 {
+    use Queue\Logger\LoggerTrait;
+    
     const MAX_TRIES = 5;
 
     const STATUS_NEW = 0;
@@ -147,21 +149,5 @@ class Job implements JobInterface
     public function getSerialized()
     {
         return serialize(['name' => $this->getName(), 'data' => $this->getData()]);
-    }
-
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
-    protected function log($level, $message, $context = [])
-    {
-        // \Gb\Util::pre([$level, $message, $context], 'worker log');
-        if (!$this->logger) {
-            return;
-        }
-
-        $message = sprintf('[%s] %s', $this->workerId, $message);
-        $this->logger->log($level, $message, $context);
     }
 }

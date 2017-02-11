@@ -4,15 +4,10 @@ namespace Queue\Driver;
 
 use Queue\Job\JobInterface;
 use Queue\Job\Job;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
 
 abstract class Driver implements DriverInterface
 {
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    use Queue\Logger\LoggerTrait;
 
     /**
      * @param string       $queueName
@@ -65,6 +60,10 @@ abstract class Driver implements DriverInterface
         $this->log(LogLevel::DEBUG, "Job {$job->getName()} updated", $job->getData());
     }
 
+    public function moveJobToEnd(JobInterface $job)
+    {
+        $this->log(LogLevel::DEBUG, 'moveJobToEnd ' . $job->getId(), $job->getData());
+    }
 
     protected function getJobByData($data)
     {
@@ -83,22 +82,6 @@ abstract class Driver implements DriverInterface
             $this->setJobStatus($data['id'], Job::STATUS_ERROR);
         }
         return $job;
-    }
-    /**
-     * @param LoggerInterface $logger
-     */
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
-    protected function log($level, $message, $context = [])
-    {
-        if (!$this->logger) {
-            return;
-        }
-
-        $this->logger->log($level, $message, $context);
     }
 
     private function getNewJobByHash($hash)

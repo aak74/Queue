@@ -1,25 +1,16 @@
 <?php
 
-/**
- * This file is part of the Queue package.
- *
- * Originally author (c) Dries De Peuter <dries@nousefreak.be>
- * coauthor: (c) Andrew Kopylov <aa74ko@gmail.com>
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 namespace Queue;
 
 use Queue\Driver\DriverInterface;
 use Queue\Job\JobInterface;
 use Queue\Job\Job as Job;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
-use Monolog\Handler\StreamHandler;
-use Monolog\Logger;
+// use Psr\Log\LoggerInterface;
+// use Psr\Log\LogLevel;
 
 class Queue
 {
+    use Queue\Logger\LoggerTrait;
     /**
      * @var DriverInterface
      */
@@ -66,14 +57,7 @@ class Queue
             $this->updateJob($job);
         }
     }
-/*
-    private function getQueueCleanName()
-    {
-        $parts = explode('\\', $this->name);
-        end($parts);
-        return current($parts);
-    }
-*/
+
     public function addJobToQueue(JobInterface $job, $queue)
     {
         // \Gb\Util::pre([$queue, $job->getData()], 'addJobToQueue');
@@ -164,26 +148,11 @@ class Queue
             $renameTo
         );
 
-
-
         return $jobTypes;
     }
 
     public function setNamespace($namespace)
     {
         $this->namespace = $namespace;
-    }
-
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
-    protected function log($level, $message, $context = [])
-    {
-        if (!$this->logger) {
-            return;
-        }
-        $this->logger->log($level, $message, $context);
     }
 }

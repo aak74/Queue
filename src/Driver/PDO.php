@@ -4,7 +4,6 @@ namespace Queue\Driver;
 
 use Queue\Job\Job as Job;
 use Queue\Job\JobInterface;
-use Psr\Log\LogLevel;
 
 class PDO extends Driver
 {
@@ -50,8 +49,7 @@ SQL;
 
     public function resolveJob($queueName)
     {
-        $this->log(LogLevel::DEBUG, 'PDO resolveJob ' . $queueName);
-        // \Gb\Util::pre($queueName, 'PDO resolveJob');
+        parent::resolveJob($queueName);
         $sql = <<<SQL
             SELECT *
             FROM $this->tablename
@@ -76,7 +74,6 @@ SQL;
         );
 
         if ($data = $stmt->fetch()) {
-            $this->log(LogLevel::DEBUG, 'PDO resolveJob ', $data);
             $job = $this->getJobByData($data);
         }
 
@@ -86,9 +83,7 @@ SQL;
 
     public function removeJob(JobInterface $job)
     {
-        // \Gb\Util::pre([$queueName, $job], 'Driver\PDO removeJob');
-        // \Gb\Util::pre($job, 'removeJob');
-        $this->log(LogLevel::DEBUG, 'removeJob ' . $job->getId(), $job->getData());
+        parent::removeJob($job);
         $this->execQuery(
             'UPDATE ' . $this->tablename
             . ' SET `status` = :status, `result` = :result WHERE `id` = :id',
@@ -98,9 +93,7 @@ SQL;
 
     public function moveJobToEnd(JobInterface $job)
     {
-        // \Gb\Util::pre([$job, $job->getPropertyByName('attempts')], 'Driver\PDO moveJobToEnd');
-        // \Gb\Util::pre($job, 'removeJob');
-        $this->log(LogLevel::DEBUG, 'moveJobToEnd ' . $job->getId(), $job->getData());
+        parent::moveJobToEnd($job);
         $this->execQuery(
             'UPDATE ' . $this->tablename
             . ' SET `attempts` = `attempts` + 1, `result` = :result WHERE `id` = :id',
@@ -114,7 +107,7 @@ SQL;
      */
     public function buryJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "buryJob {$job->getId()}", $job->getData());
+        parent::buryJob($job);
         $this->execQuery(
             'UPDATE ' . $this->tablename . ' SET `status` = :status WHERE `id` = :id',
             ['id' => $job->getId(), 'status' => Job::STATUS_BURIED]
@@ -123,8 +116,7 @@ SQL;
 
     public function updateJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "updateJob {$job->getName()}", $job->getData());
-
+        parent::updateJob($job);
         $sql = <<<SQL
             UPDATE $this->tablename
             SET `status` = :status, `queue` LIKE :queue, `job` = :job, `hash` = :hash
@@ -254,19 +246,6 @@ SQL;
     {
         $this->execQuery('DELETE FROM ' . $this->tablename, []);
     }
-
-/*
-    private function updateJobAttempts($jobId, $attempts)
-    {
-        $this->execQuery(
-            "UPDATE $this->tablename SET `attempts` = :attempts WHERE `id` = :id",
-            [
-                'id' => $jobId,
-                'attempts' => $attempts,
-            ]
-        );
-    }
-*/
 
     protected function setJobStatus($jobId, $status)
     {

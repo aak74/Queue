@@ -4,7 +4,6 @@ namespace Queue\Driver;
 
 use Queue\Job\Job as Job;
 use Queue\Job\JobInterface;
-use Psr\Log\LogLevel;
 
 class BitrixHl extends Driver
 {
@@ -33,9 +32,7 @@ class BitrixHl extends Driver
 
     public function resolveJob($queueName)
     {
-        $this->log(LogLevel::DEBUG, 'Driver resolveJob ' . $queueName);
-        // \Gb\Util::pre($queueName, 'PDO resolveJob');
-
+        parent::resolveJob($queueName);
         $data = $this->elementObj->getRow([
             'order' => ['tries', 'id'],
             'filter' => [
@@ -49,7 +46,7 @@ class BitrixHl extends Driver
 
     public function removeJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, 'removeJob ' . $job->getId(), $job->getData());
+        parent::removeJob($job);
         $this->elementObj->update(
             $job->getId(),
             [
@@ -61,9 +58,7 @@ class BitrixHl extends Driver
 
     public function moveJobToEnd(JobInterface $job)
     {
-        // \Gb\Util::pre([$job, $job->getPropertyByName('attempts')], 'Driver\PDO moveJobToEnd');
-        // \Gb\Util::pre($job, 'removeJob');
-        $this->log(LogLevel::DEBUG, 'moveJobToEnd ' . $job->getId(), $job->getData());
+        parent::moveJobToEnd($job);
         $this->elementObj->update(
             $job->getId(),
             [
@@ -79,7 +74,7 @@ class BitrixHl extends Driver
      */
     public function buryJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "buryJob {$job->getId()}", $job->getData());
+        parent::buryJob($job);
         $this->elementObj->update(
             $job->getId(),
             [
@@ -93,7 +88,7 @@ class BitrixHl extends Driver
      */
     public function updateJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, "updateJob {$job->getName()}", $job->getData());
+        parent::updateJob($job);
         $this->elementObj->update(
             $job->getId(),
             [
