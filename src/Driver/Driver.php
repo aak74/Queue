@@ -27,6 +27,7 @@ abstract class Driver implements DriverInterface
     }
 
     abstract protected function insertJob($job);
+    abstract public function getNewJobTypes($type);
 
     /**
      * @param string $queueName
@@ -68,14 +69,15 @@ abstract class Driver implements DriverInterface
 
     protected function getJobByData($data)
     {
-        // \Gb\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
+        \Akop\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
         if (!data) {
             return false;
         }
-        $jobUnserialized = unserialize($data['job']);
+        $jobUnserialized = unserialize($data['payload']);
         if (is_array($jobUnserialized) && isset($jobUnserialized['data'])) {
             // if (is_array($jobUnserialized)) {
-            $job = new Job($jobUnserialized['name'], $jobUnserialized['data']);
+            $jobClass = '\\' . $data['worker'];
+            $job = new $jobClass($data['name'], $jobUnserialized['data']);
             $job->setDataAll($data);
         }
 

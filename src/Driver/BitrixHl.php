@@ -33,9 +33,10 @@ class BitrixHl extends Driver
             'filter' => [
                 'name' => $queueName,
                 'status' => Job::STATUS_NEW,
-                '<tries' => Job::MAX_TRIES,
+                // '<tries' => Job::MAX_TRIES,
             ]
         ]);
+        \Akop\Util::pre([$queueName, $data], 'resolveJob');
         return $this->getJobByData($data);
     }
 
@@ -97,11 +98,7 @@ class BitrixHl extends Driver
 
     public function getJobById($jobId)
     {
-        return $this->elementObj->getList([
-                'filter' => [
-                    'id' => $jobId,
-                ]
-            ]);
+        return $this->elementObj->getList(['filter' => ['id' => $jobId]]);
     }
 
     public function getNewJobs($queueName)
@@ -112,6 +109,23 @@ class BitrixHl extends Driver
                     'name' => str_replace('\\', '\\\\', $queueName),
                 ]
             ]);
+    }
+
+    public function getNewJobTypes($type)
+    {
+        $list = $this->elementObj->getList([
+                'filter' => [
+                    'status' => Job::STATUS_NEW,
+                    'type' => $type,
+                ],
+                'group' => ['name'],
+                'order' => ['weight' => 'desc']
+            ]);
+        foreach ($list as $type) {
+            $result[$type['name']] = $type['cnt'];
+        }
+
+        return $result;
     }
 
     protected function setJobStatus($jobId, $status)

@@ -6,7 +6,7 @@ use Queue\Driver\DriverInterface;
 use Queue\Job\JobInterface;
 use Queue\Job\Job as Job;
 // use Psr\Log\LoggerInterface;
-// use Psr\Log\LogLevel;
+use Psr\Log\LogLevel;
 
 class Queue
 {
@@ -129,25 +129,9 @@ class Queue
         return $this->driver->getNewJobs($this->name);
     }
 
-    public function getNewJobsWithChildren()
+    public function getNewJobTypes($type)
     {
-        return $this->driver->getNewJobsWithChildren($this->name);
-    }
-
-    public function getNewJobTypes($renameTo = 'name')
-    {
-        $jobTypes = [];
-        $jobs = $this->getNewJobsWithChildren($this->name);
-        foreach ($jobs as $job) {
-            ++$jobTypes[$job['queue']];
-        }
-        return $this->jobTypes->getRenamedAndSorted(
-            $jobTypes,
-            $this->name,
-            $renameTo
-        );
-
-        return $jobTypes;
+        return $this->driver->getNewJobTypes($type);
     }
 
     public function setNamespace($namespace)

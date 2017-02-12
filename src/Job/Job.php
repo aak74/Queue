@@ -63,12 +63,12 @@ class Job implements JobInterface
 
     public function setDataAll($data)
     {
-        $this->jobId = $data['jobId'];
+        $this->jobId = $data['id'];
         $this->name = $data['name'];
         $this->status = $data['status'];
         $this->result = $data['result'];
         $this->tries = $data['tries'];
-        $this->data = $data['data'];
+        $this->payload = $data['payload'];
     }
 
     public function run()
@@ -112,7 +112,7 @@ class Job implements JobInterface
             'weight' => $this->weight,
             'status' => $this->getStatus(),
             'payload' => $this->getSerialized(),
-            'worker' => self::class,
+            'worker' =>  get_class($this),
             'result' => serialize($this->getResult()),
             'hash' => $this->getHash(),
         ];
