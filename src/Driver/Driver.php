@@ -69,7 +69,7 @@ abstract class Driver implements DriverInterface
 
     protected function getJobByData($data)
     {
-        \Akop\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
+        // \Akop\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
         if (!data) {
             return false;
         }

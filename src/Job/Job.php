@@ -68,6 +68,7 @@ class Job implements JobInterface
         $this->status = $data['status'];
         $this->result = $data['result'];
         $this->tries = $data['tries'];
+        $this->type = $data['type'];
         $this->payload = $data['payload'];
     }
 
@@ -90,8 +91,11 @@ class Job implements JobInterface
 
     protected function tryRun()
     {
-        $this->addToQueue = false;
+        if ($this->nextJobClassName == null) {
+            return false;
+        }
         $this->log(LogLevel::DEBUG, 'tryRun', $this->getData());
+        $this->addToQueue = false;
         $nextJob = new $this->nextJobClassName($this->nextJobClassName, $this->getData());
         if ($nextJob->execute()) {
             $this->addToQueue[] = $nextJob;

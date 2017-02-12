@@ -36,7 +36,7 @@ class BitrixHl extends Driver
                 // '<tries' => Job::MAX_TRIES,
             ]
         ]);
-        \Akop\Util::pre([$queueName, $data], 'resolveJob');
+        // \Akop\Util::pre([$queueName, $data], 'resolveJob');
         return $this->getJobByData($data);
     }
 
