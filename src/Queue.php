@@ -34,41 +34,44 @@ class Queue
 
     public function runJob()
     {
-        $this->runJobByJob($this->resolveJob());
+        return $this->runJobByJob($this->resolveJob());
     }
 
     public function runJobById($jobId)
     {
-        $this->runJobByJob($this->getJobById($jobId));
+        return $this->runJobByJob($this->getJobById($jobId));
     }
 
     private function runJobByJob(JobInterface $job)
     {
+        // \Akop\Util::pre($job, 'runJobByJob job');
+        // $this->log(LogLevel::DEBUG, 'runJobByJob ' . $this->name, (array)$job);
         $this->log(LogLevel::DEBUG, 'runJobByJob ' . $this->name);
         $job->run();
         $result = true;
-        // \Gb\Util::pre([$updaterName, $nextQueue, $jobResult], 'jobResult');
-        foreach ($job->addToQueue as $item) {
-            $result = $result && $this->addJobToQueue($item);
+        if (!empty($job->addToQueue) && is_array($job->addToQueue)) {
+            foreach ($job->addToQueue as $item) {
+                $result = $result && $this->addJobToQueue($item);
+            }
         }
+        // \Akop\Util::pre([$result, $job], 'runJobByJob');
 
         if ($result) {
             $this->updateJob($job);
         }
+        return $result;
     }
-/*
-    public function addJobToQueue(JobInterface $job, $queue)
+
+    private function addJobToQueue(JobInterface $job, $queue)
     {
-        // \Gb\Util::pre([$queue, $job->getData()], 'addJobToQueue');
         return $this->driver->addJob($queue, $job);
     }
-*/
+
     /**
      * @param JobInterface $job
      */
     public function addJob(JobInterface $job)
     {
-        // \Gb\Util::pre([$this->getName(), $job], 'Queue addJob');
         $this->driver->addJob($job);
     }
 
@@ -84,6 +87,7 @@ class Queue
      */
     public function resolveJob()
     {
+        $this->log(LogLevel::DEBUG, 'resolveJob');
         return $this->driver->resolveJob($this->name);
     }
 
@@ -110,7 +114,7 @@ class Queue
 
     public function updateJob(JobInterface $job)
     {
-        // \Gb\Util::pre($job, 'Queue updateJob');
+        // \Akop\Util::pre($job, 'Queue updateJob');
         $this->driver->updateJob($job);
     }
 

@@ -58,7 +58,7 @@ class Job implements JobInterface
      */
     public function getData()
     {
-        return $this->data;
+        return $this->payload;
     }
 
     public function setDataAll($data)
@@ -113,6 +113,7 @@ class Job implements JobInterface
         return [
             'name' => $this->getName(),
             'type' => $this->type,
+            'tries' => $this->tries,
             'weight' => $this->weight,
             'status' => $this->getStatus(),
             'payload' => $this->getSerialized(),
