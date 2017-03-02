@@ -27,7 +27,7 @@ class Job implements JobInterface
     private $status;
     private $result;
     private $tries = 0;
-    private $payload;
+    private $payload = [];
 
     private $jobId;
 
@@ -41,7 +41,7 @@ class Job implements JobInterface
     {
         // \Gb\Util::pre([$name, $data], 'Job  __construct');
         $this->name = $name;
-        $this->data = $data;
+        $this->payload = $data;
         $this->status = self::STATUS_NEW;
     }
 
@@ -58,7 +58,12 @@ class Job implements JobInterface
      */
     public function getData()
     {
-        return $this->payload;
+        return (array)$this->payload;
+    }
+
+    public function getParam($param)
+    {
+        return $this->payload[$param];
     }
 
     public function setDataAll($data)
@@ -69,7 +74,7 @@ class Job implements JobInterface
         $this->result = $data['result'];
         $this->tries = $data['tries'];
         $this->type = $data['type'];
-        $this->payload = $data['payload'];
+        // $this->payload = $data['payload'];
     }
 
     public function run()

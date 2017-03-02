@@ -16,7 +16,7 @@ abstract class Driver implements DriverInterface
      */
     public function addJob(JobInterface $job)
     {
-        $this->log(LogLevel::DEBUG, 'addJob ' . $job->getName(), $job->getData());
+        $this->log(LogLevel::DEBUG, 'addJob ' . $job->getName(), (array)$job->getData());
         $hash = $job->getHash();
         // \Akop\Util::pre($hash, 'addJob $hash');
         return (
@@ -69,22 +69,26 @@ abstract class Driver implements DriverInterface
 
     protected function getJobByData($data)
     {
-        // \Akop\Util::pre([$data, $data['job'], $jobUnserialized], 'resolveJob__ rawData');
+        // \Akop\Util::pre($data, 'resolveJob__ rawData');
         if (!data) {
             return false;
         }
         $jobUnserialized = unserialize($data['payload']);
-        if (is_array($jobUnserialized) && isset($jobUnserialized['data'])) {
-            // if (is_array($jobUnserialized)) {
-            $jobClass = '\\' . $data['worker'];
-            $job = new $jobClass($data['name'], $jobUnserialized['data']);
-            $job->setDataAll($data);
-        }
-
-        if (!$job) {
-            $this->setJobStatus($data['id'], Job::STATUS_ERROR);
-        }
+        // \Akop\Util::pre([$data, $data['payload'], $jobUnserialized], 'resolveJob__ rawData');
+        // if (is_array($jobUnserialized)) {
+        $jobClass = '\\' . $data['worker'];
+        $jobData = (is_array($jobUnserialized) && isset($jobUnserialized['data']))
+            ? $jobUnserialized['data']
+            : [];
+        $job = new $jobClass($data['name'], $jobData);
+        $job->setDataAll($data);
         return $job;
+
+        // if (!$job) {
+        //     $this->setJobStatus($data['id'], Job::STATUS_ERROR);
+        // }
+        // \Akop\Util::pre($job, 'resolveJob__ job');
+        // return $job;
     }
 
     private function getNewJobByHash($hash)
